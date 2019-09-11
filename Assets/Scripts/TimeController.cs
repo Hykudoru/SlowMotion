@@ -1,21 +1,12 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public static class ExtensionMethods
+public class TimeController : SingleMonoBehaviour<TimeController>
 {
-    public static IEnumerator ScaleTimeAsync(this Time time, float timeScale, float speed = 1f)
-    {
-        //time...
-        yield return null;
-    }
-} 
-
-public class TimeController : MonoBehaviour
-{
-    public static TimeController Instance { get; set; }
-    float rate = 0.02f;
-    IEnumerator coroutine;
+    [SerializeField] [Range(0.02f, 10f)] float rateOfChange = 1f;
+    static IEnumerator coroutine;
 
     public float TimeScale
     {
@@ -26,15 +17,15 @@ public class TimeController : MonoBehaviour
             {
                 StopCoroutine(coroutine);
             }
-            coroutine = ScaleTimeAsync(value);
+            coroutine = ScaleTimeAsync(value, rateOfChange);
             StartCoroutine(coroutine);
         }
     }
 
-    // Start is called before the first frame update
-    void Start()
+    protected override void Awake()
     {
-        Instance = this;
+        base.Awake();
+        DontDestroyOnLoad(this);
     }
 
     // Update is called once per frame
@@ -42,7 +33,7 @@ public class TimeController : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.Space))
         {
-            TimeScale = 0f;
+            TimeScale = 0.05f;
         }
         if (Input.GetKeyDown(KeyCode.UpArrow))
         {
@@ -50,16 +41,16 @@ public class TimeController : MonoBehaviour
         }
         else if (Input.GetKeyDown(KeyCode.DownArrow))
         {
-            TimeScale = 0f;
+            TimeScale = 0.05f;
         }
 
         //Time.fixedDeltaTime = 0.02f * Time.timeScale;
     }
 
-    IEnumerator _ScaleTimeAsync(float targetScale, float speed = 2f)
+    IEnumerator ScaleTimeAsync(float target, float rateOfChange = 1f)
     {
-        float initialScale = Time.timeScale;
-        float totalTime = Mathf.Abs(targetScale - initialScale) / speed;
+        float initial = Time.timeScale;
+        float totalTime = Mathf.Abs(target - initial) / rateOfChange;
         float elapsedTime = 0f;
 
         while (elapsedTime < totalTime)
@@ -70,35 +61,44 @@ public class TimeController : MonoBehaviour
                 elapsedTime = totalTime;
             }
 
-            Time.timeScale = Mathf.Lerp(initialScale, targetScale, elapsedTime / totalTime);
+            Time.timeScale = Mathf.Lerp(initial, target, elapsedTime / totalTime);
+            Time.fixedDeltaTime = 0.02f * Time.timeScale;
+
+            yield return null;
+        }
+
+        //Debug.Log($"{elapsedTime}s from {initial} to {Time.timeScale}");
+    }
+
+
+    public static IEnumerator InvokeRepeating(Func<bool> conditionMet, float interval = 0f)
+    {
+        var delay = new WaitForSeconds(interval);
+
+        while (!conditionMet())
+        {
+            yield return delay;
+        }
+    }
+}
+
+public static class Extensions
+{
+    public static IEnumerator Async(this MonoBehaviour mb, Func<float, bool> conditionRun)
+    {
+        float elapsedTime = 0f;
+
+        while (conditionRun(elapsedTime));
+        {
+            elapsedTime += Time.unscaledDeltaTime;
             Time.fixedDeltaTime = 0.02f * Time.timeScale;
 
             yield return null;
         }
     }
 
-    IEnumerator ScaleTimeAsync(float targetScale, float speed = 1f)
+    public static void InvokeRepeating(this MonoBehaviour mb, Func<bool> conditionMet, float interval = 0f)
     {
-        float initialScale = Time.timeScale;
-        float totalDistance = Mathf.Abs(targetScale - initialScale);
-        float elapsedTime = 0f;
-        float currentDistance = 0f;
-
-        while (currentDistance < totalDistance)
-        {
-            elapsedTime += Time.unscaledDeltaTime;
-            currentDistance = (speed * elapsedTime);
-            if (currentDistance > totalDistance)
-            {
-                currentDistance = totalDistance;
-            }
-
-            Time.timeScale = Mathf.Lerp(initialScale, targetScale, currentDistance / totalDistance);
-            Time.fixedDeltaTime = 0.02f * Time.timeScale;
-
-            yield return null;
-        }
-
-        Debug.Log("elapsed: " + elapsedTime +" Scale: "+Time.timeScale);
+        mb.StartCoroutine(TimeController.InvokeRepeating(conditionMet, interval));
     }
 }
