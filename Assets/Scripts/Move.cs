@@ -18,11 +18,11 @@ public class Move : MonoBehaviour
             transform.localScale += Vector3.one * Time.deltaTime;
             return transform.localScale.y > 10f;
         }, 0.02f);
-        /*
-        StartCoroutine(TimeController.InvokeRepeating(() => {
-            transform.localScale += Vector3.one;
+        
+        StartCoroutine(Extensions.InvokeRepeatingAsync(() => {
+            transform.localScale += Vector3.one * Time.deltaTime;
             return transform.localScale.y > 10f;
-        }, 0.5f));*/
+        }, 0f));
     }
 
     // Update is called once per frame

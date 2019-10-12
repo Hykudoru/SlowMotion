@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 
-public abstract class SingleMonoBehaviour<T> : MonoBehaviour where T : MonoBehaviour
+[DisallowMultipleComponent]
+public abstract class SingletonBehaviour<T> : MonoBehaviour where T : MonoBehaviour
 {
     public static T Instance { get; private set; }
 

@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class TimeController : SingleMonoBehaviour<TimeController>
+public class TimeController : SingletonBehaviour<TimeController>
 {
     [SerializeField] [Range(0.02f, 10f)] float rateOfChange = 1f;
     static IEnumerator coroutine;
@@ -69,20 +69,9 @@ public class TimeController : SingleMonoBehaviour<TimeController>
 
         //Debug.Log($"{elapsedTime}s from {initial} to {Time.timeScale}");
     }
-
-
-    public static IEnumerator InvokeRepeating(Func<bool> conditionMet, float interval = 0f)
-    {
-        var delay = new WaitForSeconds(interval);
-
-        while (!conditionMet())
-        {
-            yield return delay;
-        }
-    }
 }
 
-public static class Extensions
+public static partial class Extensions
 {
     public static IEnumerator Async(this MonoBehaviour mb, Func<float, bool> conditionRun)
     {
@@ -97,8 +86,38 @@ public static class Extensions
         }
     }
 
+    public static IEnumerator Async(Func<bool> conditionMet)
+    {
+        while (!conditionMet())
+        {
+            yield return null;
+        }
+    }
+
+    public static void Async(this MonoBehaviour mb, Func<bool> conditionMet)
+    {
+        mb.StartCoroutine(Async(conditionMet));
+    }
+
+    // INVOKE REPEATING
+
+    public static IEnumerator InvokeRepeatingAsync(Func<bool> conditionMet, float interval = 0f)
+    {
+        var delay = new WaitForSeconds(interval);
+
+        while (!conditionMet())
+        {
+            yield return delay;
+        }
+    }
+
+    public static void InvokeRepeating(this MonoBehaviour mb, Action action, float interval = 0f)
+    {
+        mb.StartCoroutine(InvokeRepeatingAsync(()=> { action(); return false; }, interval));
+    }
+
     public static void InvokeRepeating(this MonoBehaviour mb, Func<bool> conditionMet, float interval = 0f)
     {
-        mb.StartCoroutine(TimeController.InvokeRepeating(conditionMet, interval));
+        mb.StartCoroutine(InvokeRepeatingAsync(conditionMet, interval));
     }
 }
